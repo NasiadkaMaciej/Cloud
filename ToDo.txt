@@ -1,0 +1,10 @@
+Check file size on frontend
+Create user in one file
+Add function to cleanup all dbs in admin
+Improve file layout
+Add loading animation
+Improve rerendering of user list in admin panel
+Display user quota in dashboard
+Add button to remove account
+Add registering
+More .env variables
