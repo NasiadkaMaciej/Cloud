@@ -2,6 +2,7 @@ const User = require('../models/user');
 const File = require('../models/file');
 const keycloakService = require('../services/keycloak');
 const { getUserStorageUsed } = require('../services/quota');
+const { cleanupAll } = require('../utils/adminCleanup');
 
 // Get all users with their quotas
 exports.getUsers = async (req, res) => {
@@ -140,6 +141,24 @@ exports.removeUser = async (req, res) => {
 		console.error('Error removing user:', error);
 		res.status(500).json({
 			message: 'Error removing user',
+			error: error.message
+		});
+	}
+};
+
+exports.cleanupSystem = async (req, res) => {
+	try {
+		const results = await cleanupAll();
+
+		res.status(200).json({
+			message: 'Cleanup completed successfully',
+			orphanedDbEntriesRemoved: results.dbEntriesRemoved,
+			orphanedFilesRemoved: results.filesRemoved
+		});
+	} catch (error) {
+		console.error('Error during system cleanup:', error);
+		res.status(500).json({
+			message: 'Error during system cleanup',
 			error: error.message
 		});
 	}

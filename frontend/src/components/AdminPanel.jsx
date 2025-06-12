@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getAllUsers, deleteUser, updateUserQuota } from '../services/api';
 import { formatBytes } from '../utils';
+import { getAllUsers, deleteUser, updateUserQuota, cleanupSystem } from '../services/api';
 
 const AdminPanel = () => {
 	const [users, setUsers] = useState([]);
@@ -8,6 +8,8 @@ const AdminPanel = () => {
 	const [error, setError] = useState(null);
 	const [editingUser, setEditingUser] = useState(null);
 	const [newQuota, setNewQuota] = useState(5);
+	const [cleanupStatus, setCleanupStatus] = useState(null);
+	const [isCleaningUp, setIsCleaningUp] = useState(false);
 
 	useEffect(() => {
 		fetchUsers();
@@ -47,6 +49,26 @@ const AdminPanel = () => {
 		} catch (err) {
 			setError('Failed to update quota');
 			console.error(err);
+		}
+	};
+
+	const handleSystemCleanup = async () => {
+		if (window.confirm('Are you sure you want to clean up the system? This will remove orphaned files and database entries.')) {
+			try {
+				setIsCleaningUp(true);
+				const response = await cleanupSystem();
+				setCleanupStatus({
+					success: true,
+					message: `Cleanup completed: ${response.data.orphanedDbEntriesRemoved} database entries and ${response.data.orphanedFilesRemoved} files removed.`
+				});
+			} catch (err) {
+				setCleanupStatus({
+					success: false,
+					message: 'Failed to clean up system: ' + (err.response?.data?.message || err.message)
+				});
+			} finally {
+				setIsCleaningUp(false);
+			}
 		}
 	};
 
@@ -150,6 +172,26 @@ const AdminPanel = () => {
 						)}
 					</tbody>
 				</table>
+			</div>
+			<div className="mt-8 bg-white rounded-lg shadow-md p-6">
+				<h2 className="text-xl font-bold mb-4">System Maintenance</h2>
+
+				{cleanupStatus && (
+					<div className={`p-4 mb-4 rounded ${cleanupStatus.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+						{cleanupStatus.message}
+					</div>
+				)}
+
+				<button
+					onClick={handleSystemCleanup}
+					disabled={isCleaningUp}
+					className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md disabled:bg-gray-400"
+				>
+					{isCleaningUp ? 'Cleaning...' : 'Clean Up System'}
+				</button>
+				<p className="mt-2 text-sm text-gray-600">
+					This will remove orphaned files and database entries.
+				</p>
 			</div>
 		</div>
 	);

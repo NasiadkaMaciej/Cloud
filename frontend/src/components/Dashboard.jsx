@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getFiles, uploadFile, deleteFile, downloadFile } from '../services/api';
+import { getFiles, uploadFile, deleteFile, downloadFile, getCurrentUser } from '../services/api';
 import { formatBytes } from '../utils';
 
 const FileTable = ({ files, onDownload, onDelete, loading }) => {
@@ -63,9 +63,11 @@ const Dashboard = () => {
 	const [loading, setLoading] = useState(true);
 	const [uploading, setUploading] = useState(false);
 	const [error, setError] = useState(null);
+	const [quotaInfo, setQuotaInfo] = useState(null);
 
 	useEffect(() => {
 		fetchFiles();
+		fetchUserQuota();
 	}, []);
 
 	const fetchFiles = async () => {
@@ -82,26 +84,65 @@ const Dashboard = () => {
 		}
 	};
 
+	const fetchUserQuota = async () => {
+		try {
+			const response = await getCurrentUser();
+			setQuotaInfo({
+				used: response.data.usedStorage,
+				total: response.data.storageQuota,
+				available: response.data.available
+			});
+		} catch (err) {
+			console.error('Failed to load quota information:', err);
+		}
+	};
+
 	const handleFileUpload = async (event) => {
 		const file = event.target.files[0];
 		if (!file) return;
 
+		// Reset any previous error
+		setError(null);
+
+		const MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024; // 1GB
+		if (file.size > MAX_FILE_SIZE) {
+			setError(`File size exceeds the maximum allowed size of ${formatBytes(MAX_FILE_SIZE)}`);
+			// Clear the file input
+			event.target.value = '';
+			return;
+		}
+
+		// Check if file will fit in the user's remaining quota
+		if (quotaInfo) {
+			const remainingSpace = quotaInfo.available;
+			if (file.size > remainingSpace) {
+				setError(`Not enough storage space. You have ${formatBytes(remainingSpace)} available but the file is ${formatBytes(file.size)}`);
+				// Clear the file input
+				event.target.value = '';
+				return;
+			}
+		}
+
 		try {
 			setUploading(true);
 			await uploadFile(file);
-			fetchFiles();
+			await fetchFiles();
+			await fetchUserQuota();
 		} catch (err) {
 			setError('Failed to upload file');
 			console.error(err);
 		} finally {
 			setUploading(false);
+			// Clear the file input
+			event.target.value = '';
 		}
 	};
 
 	const handleDeleteFile = async (fileId) => {
 		try {
 			await deleteFile(fileId);
-			fetchFiles();
+			await fetchFiles();
+			await fetchUserQuota();
 		} catch (err) {
 			setError('Failed to delete file');
 			console.error(err);
@@ -124,6 +165,23 @@ const Dashboard = () => {
 			{error && (
 				<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
 					{error}
+				</div>
+			)}
+
+			{/* Storage quota display */}
+			{quotaInfo && (
+				<div className="bg-white p-4 rounded-lg shadow-md mb-6">
+					<h2 className="text-lg font-semibold mb-2">Storage</h2>
+					<div className="flex justify-between mb-1">
+						<span>{formatBytes(quotaInfo.used)} used of {formatBytes(quotaInfo.total)}</span>
+						<span>{formatBytes(quotaInfo.available)} available</span>
+					</div>
+					<div className="w-full bg-gray-200 rounded-full h-2.5">
+						<div
+							className="bg-blue-600 h-2.5 rounded-full"
+							style={{ width: `${Math.min(100, (quotaInfo.used / quotaInfo.total) * 100)}%` }}
+						></div>
+					</div>
 				</div>
 			)}
 

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getToken, updateToken } from './keycloak';
+import { getToken } from './keycloak';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -21,7 +21,7 @@ api.interceptors.request.use(
 	}
 );
 
-// File services
+// User services
 export const uploadFile = (file) => {
 	const formData = new FormData();
 	formData.append('file', file);
@@ -31,21 +31,6 @@ export const uploadFile = (file) => {
 			'Content-Type': 'multipart/form-data'
 		}
 	});
-};
-
-export const getFiles = () => api.get('/files');
-
-export const deleteFile = (fileId) => api.delete(`/files/${fileId}`);
-
-// Admin services
-export const getAllUsers = () => api.get('/admin/users');
-
-export const deleteUser = (userId) => api.delete(`/admin/users/${userId}`);
-
-export const getUserQuota = (userId) => api.get(`/admin/users/${userId}/quota`);
-
-export const updateUserQuota = (userId, quota) => {
-	return api.post(`/admin/users/${userId}/quota`, { quota })
 };
 
 export const downloadFile = (fileId, fileName) => {
@@ -61,5 +46,25 @@ export const downloadFile = (fileId, fileName) => {
 		link.remove();
 	});
 };
+
+export const getCurrentUser = () => api.get('/user/me');
+
+export const deleteUserAccount = () => api.delete('/user/me');
+export const getFiles = () => api.get('/files');
+
+export const deleteFile = (fileId) => api.delete(`/files/${fileId}`);
+
+// Admin services
+export const getAllUsers = () => api.get('/admin/users');
+
+export const deleteUser = (userId) => api.delete(`/admin/users/${userId}`);
+
+export const getUserQuota = (userId) => api.get(`/admin/users/${userId}/quota`);
+
+export const updateUserQuota = (userId, quota) => {
+	return api.post(`/admin/users/${userId}/quota`, { quota })
+};
+
+export const cleanupSystem = () => api.post('/admin/system/cleanup');
 
 export default api;

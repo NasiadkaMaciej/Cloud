@@ -1,18 +1,24 @@
-module.exports = (requiredRoles) => {
+const roleCheck = (requiredRoles = []) => {
 	return (req, res, next) => {
-		// Skip role check for OPTIONS requests
-		if (req.method === 'OPTIONS') return next();
+		try {
+			// req.user should be set by the authenticate middleware
+			if (!req.user || !req.user.roles) {
+				return res.status(403).json({
+					message: 'Forbidden: User role information missing'
+				});
+			}
 
-		// Check if user exists
-		if (!req.user) return res.status(403).json({ message: 'Access denied. User not authenticated.' });
+			// Check if the user has at least one of the required roles
+			const userHasRequiredRole = requiredRoles.some(role => req.user.roles.includes(role));
 
-		// Ensure we have an array of roles to check
-		const userRoles = req.user.roles || [];
+			if (!userHasRequiredRole) return res.status(403).json({ message: 'Access denied. Insufficient permissions.' });
 
-		// Check if user has any of the required roles
-		const hasRole = userRoles.some(role => requiredRoles.includes(role));
-		if (!hasRole) return res.status(403).json({ message: 'Access denied. Insufficient permissions.' });
-
-		next();
+			next();
+		} catch (error) {
+			console.error('Role check error:', error);
+			res.status(500).json({ message: 'Server error during role validation' });
+		}
 	};
 };
+
+module.exports = roleCheck;

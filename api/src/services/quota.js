@@ -3,6 +3,7 @@ const { getUserDir, calculateDirectorySize } = require('../utils/fileSystem');
 
 const QUOTA_LIMIT = 5 * 1024 * 1024 * 1024; // 5 GB in bytes
 
+// Get the amount of storage used by a user
 const getUserStorageUsed = (userId) => {
 	try {
 		const userDir = getUserDir(userId);
@@ -13,6 +14,7 @@ const getUserStorageUsed = (userId) => {
 	}
 };
 
+// Check if a user has enough quota for a new file
 const checkUserQuota = async (userId, fileSize = 0) => {
 	try {
 		// Get the user's quota
@@ -42,5 +44,6 @@ const checkUserQuota = async (userId, fileSize = 0) => {
 
 module.exports = {
 	checkUserQuota,
-	getUserStorageUsed
+	getUserStorageUsed,
+	QUOTA_LIMIT
 };

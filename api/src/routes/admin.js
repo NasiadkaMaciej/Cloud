@@ -14,10 +14,13 @@ router.get('/users', adminController.getUsers);
 // Route to delete a user
 router.delete('/users/:id', adminController.removeUser);
 
-// Route to check user quota
+// Route to get user quota
 router.get('/users/:id/quota', adminController.getUserQuota);
 
 // Route to adjust user quota
 router.post('/users/:id/quota', adminController.updateUserQuota);
+
+// Route to perform system cleanup
+router.post('/system/cleanup', adminController.cleanupSystem);
 
 module.exports = router;

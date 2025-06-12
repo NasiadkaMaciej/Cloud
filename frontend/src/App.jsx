@@ -4,6 +4,7 @@ import { initKeycloak, getUserInfo, logout } from './services/keycloak';
 import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
 import Navbar from './components/Navbar';
+import UserSettings from './components/UserSettings';
 
 function App() {
 	const [initialized, setInitialized] = useState(false);
@@ -33,6 +34,9 @@ function App() {
 						<Route path="/" element={<Dashboard />} />
 						{user && user.isAdmin && (
 							<Route path="/admin" element={<AdminPanel />} />
+						)}
+						{user && (
+							<Route path="/settings" element={<UserSettings />} />
 						)}
 						<Route path="*" element={<Navigate to="/" replace />} />
 					</Routes>

@@ -5,6 +5,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const fileRoutes = require('./routes/files');
 const adminRoutes = require('./routes/admin');
+const userRoutes = require('./routes/user');
 const fs = require('fs');
 const path = require('path');
 
@@ -30,6 +31,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/user', userRoutes);
 app.use('/api/admin', adminRoutes);
 
 // MongoDB connection
