@@ -1,6 +1,3 @@
-Create user in one file
 Improve file layout
 Add loading animation
 Improve rerendering of user list in admin panel
-Add registering
-More .env variables

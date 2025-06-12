@@ -30,7 +30,6 @@ exports.downloadFile = async (req, res) => {
 		res.status(500).json({
 			message: 'Error downloading file',
 			error: error.message,
-			stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
 		});
 	}
 };
@@ -47,44 +46,35 @@ exports.uploadFile = async (req, res) => {
 		const quotaInfo = await quotaService.checkUserQuota(userId, file.size);
 
 		if (!quotaInfo.hasAvailableSpace) {
-			// Remove temporary file
 			fs.unlinkSync(file.path);
 			return res.status(403).json({ message: 'Storage quota exceeded' });
 		}
 
-		// Check if a file with the same name already exists in the database for this user
-		const existingFile = await File.findOne({ userId, fileName: file.originalname });
+		// Either update existing or create new file record
+		let fileRecord = await File.findOne({ userId, fileName: file.originalname });
 
-		if (existingFile) {
+		if (fileRecord) {
 			// Update existing file record
-			existingFile.fileSize = file.size;
-			existingFile.updatedAt = Date.now();
-			await existingFile.save();
-
-			res.status(200).json({
-				_id: existingFile._id,
-				fileName: existingFile.fileName,
-				fileSize: existingFile.fileSize,
-				createdAt: existingFile.createdAt,
-				updatedAt: existingFile.updatedAt
-			});
+			fileRecord.fileSize = file.size;
+			fileRecord.updatedAt = Date.now();
 		} else {
-			// Create new file record in database
-			const newFile = new File({
+			// Create new file record
+			fileRecord = new File({
 				userId,
 				fileName: file.originalname,
 				fileSize: file.size,
 			});
-
-			await newFile.save();
-
-			res.status(201).json({
-				_id: newFile._id,
-				fileName: newFile.fileName,
-				fileSize: newFile.fileSize,
-				createdAt: newFile.createdAt
-			});
 		}
+
+		await fileRecord.save();
+
+		return res.status(fileRecord.isNew ? 201 : 200).json({
+			_id: fileRecord._id,
+			fileName: fileRecord.fileName,
+			fileSize: fileRecord.fileSize,
+			createdAt: fileRecord.createdAt,
+			updatedAt: fileRecord.updatedAt
+		});
 	} catch (error) {
 		console.error('Error uploading file:', error);
 		res.status(500).json({

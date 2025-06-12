@@ -1,8 +1,8 @@
 const User = require('../models/user');
-const File = require('../models/file');
 const keycloakService = require('../services/keycloak');
 const { getUserStorageUsed } = require('../services/quota');
 const { cleanupAll } = require('../utils/adminCleanup');
+const userService = require('../services/userService');
 
 // Get all users with their quotas
 exports.getUsers = async (req, res) => {
@@ -39,21 +39,16 @@ exports.getUsers = async (req, res) => {
 // Get user quota information
 exports.getUserQuota = async (req, res) => {
 	try {
-		const userId = req.params.id;
+		const { id } = req.params;
 
-		// Find the user in the database
-		const user = await User.findById(userId);
+		// Get user data from our system
+		const userData = await userService.getUserData(id);
 
-		if (!user) return res.status(404).json({ message: 'User not found' });
-
-		const usedStorage = getUserStorageUsed(userId);
-
-		// Return the quota information
-		return res.status(200).json({
-			userId: user._id,
-			storageQuota: user.storageQuota,
-			usedStorage: usedStorage,
-			available: user.storageQuota - usedStorage
+		res.status(200).json({
+			userId: id,
+			storageQuota: userData.storageQuota,
+			usedStorage: userData.usedStorage,
+			available: userData.available
 		});
 	} catch (error) {
 		console.error('Error retrieving user quota:', error);
@@ -72,22 +67,8 @@ exports.updateUserQuota = async (req, res) => {
 	try {
 		const quotaInBytes = Number(quota) * 1024 * 1024 * 1024;
 
-		// First check if user exists
-		let user = await User.findById(userId);
-
-		if (!user) {
-			// Create new user document with required fields
-			user = new User({
-				_id: userId,
-				storageQuota: quotaInBytes,
-				usedStorage: 0
-			});
-			await user.save();
-		} else {
-			// Update existing user
-			user.storageQuota = quotaInBytes;
-			await user.save();
-		}
+		// Use the centralized user creation service
+		const user = await userService.createUser(userId, { storageQuota: quotaInBytes });
 
 		res.status(200).json(quotaInBytes);
 	} catch (error) {
@@ -103,44 +84,16 @@ exports.updateUserQuota = async (req, res) => {
 exports.removeUser = async (req, res) => {
 	try {
 		const userId = req.params.id;
-		const fs = require('fs').promises;
-		const { getUserDir } = require('../utils/fileSystem');
-
-		// First try to delete from Keycloak
-		const keycloakResult = await keycloakService.deleteUser(userId);
-
-		// Get user directory
-		const userDir = getUserDir(userId);
-
-		let folderDeleted = false;
-		// Delete user's folder with all contents
-		try {
-			await fs.rm(userDir, { recursive: true, force: true });
-			console.log(`Successfully removed user directory: ${userDir}`);
-			folderDeleted = true;
-		} catch (fsError) {
-			console.error(`Error removing user directory: ${fsError.message}`);
-		}
-
-		// Delete file records from database
-		await File.deleteMany({ userId });
-
-		// Then delete from MongoDB
-		const mongoResult = await User.findByIdAndDelete(userId);
-
-		if (!keycloakResult && !mongoResult)
-			return res.status(404).json({ message: 'User not found in either system' });
+		const result = await userService.deleteUser(userId);
 
 		res.status(200).json({
-			message: 'User deleted successfully',
-			keycloakDeleted: !!keycloakResult,
-			mongoDeleted: !!mongoResult,
-			folderDeleted
+			message: 'Account deleted successfully',
+			details: result
 		});
 	} catch (error) {
-		console.error('Error removing user:', error);
+		console.error('Error deleting account:', error);
 		res.status(500).json({
-			message: 'Error removing user',
+			message: 'Error deleting account',
 			error: error.message
 		});
 	}

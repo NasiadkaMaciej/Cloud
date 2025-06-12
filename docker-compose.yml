@@ -24,7 +24,6 @@ services:
       - api_uploads:/usr/src/app/uploads
     environment:
       - MONGO_URI=${MONGO_URI}
-      - JWT_SECRET=${JWT_SECRET}
       - QUOTA_LIMIT=${QUOTA_LIMIT}
       - KEYCLOAK_URL=${KEYCLOAK_URL}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM}

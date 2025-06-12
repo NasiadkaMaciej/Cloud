@@ -59,18 +59,6 @@ export const getUserInfo = () => {
 
 export const getToken = () => keycloak.token;
 
-export const updateToken = (minValidity = 5) => {
-	return new Promise((resolve, reject) => {
-		keycloak.updateToken(minValidity)
-			.then(refreshed => {
-				resolve(keycloak.token);
-			})
-			.catch(error => {
-				reject(error);
-			});
-	});
-};
-
 export const logout = () => keycloak.logout();
 
 export default keycloak;
