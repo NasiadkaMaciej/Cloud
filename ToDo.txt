@@ -1,3 +1,2 @@
 Improve file layout
-Add loading animation
 Improve rerendering of user list in admin panel

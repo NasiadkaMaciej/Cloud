@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { formatBytes } from '../utils';
 import { getAllUsers, deleteUser, updateUserQuota, cleanupSystem } from '../services/api';
+import LoadingSpinner from './LoadingSpinner';
 
 const AdminPanel = () => {
 	const [users, setUsers] = useState([]);
@@ -10,6 +11,8 @@ const AdminPanel = () => {
 	const [newQuota, setNewQuota] = useState(5);
 	const [cleanupStatus, setCleanupStatus] = useState(null);
 	const [isCleaningUp, setIsCleaningUp] = useState(false);
+	const [deletingUsers, setDeletingUsers] = useState({});
+	const [updatingQuota, setUpdatingQuota] = useState(false);
 
 	useEffect(() => {
 		fetchUsers();
@@ -32,23 +35,29 @@ const AdminPanel = () => {
 	const handleDeleteUser = async (userId) => {
 		if (window.confirm('Are you sure you want to delete this user?')) {
 			try {
+				setDeletingUsers(prev => ({ ...prev, [userId]: true }));
 				await deleteUser(userId);
 				await fetchUsers();
 			} catch (err) {
 				setError('Failed to delete user');
 				console.error(err);
+			} finally {
+				setDeletingUsers(prev => ({ ...prev, [userId]: false }));
 			}
 		}
 	};
 
 	const handleUpdateQuota = async (userId) => {
 		try {
+			setUpdatingQuota(true);
 			await updateUserQuota(userId, newQuota);
 			setEditingUser(null);
 			await fetchUsers();
 		} catch (err) {
 			setError('Failed to update quota');
 			console.error(err);
+		} finally {
+			setUpdatingQuota(false);
 		}
 	};
 
@@ -97,7 +106,9 @@ const AdminPanel = () => {
 					<tbody className="bg-white divide-y divide-gray-200">
 						{loading ? (
 							<tr>
-								<td colSpan="6" className="px-6 py-4 text-center">Loading...</td>
+								<td colSpan="6" className="px-6 py-8 text-center">
+									<LoadingSpinner size="md" fullWidth text="Loading users..." />
+								</td>
 							</tr>
 						) : users.length === 0 ? (
 							<tr>
@@ -131,13 +142,22 @@ const AdminPanel = () => {
 												<span>GB</span>
 												<button
 													onClick={() => handleUpdateQuota(user._id)}
-													className="text-green-600 hover:text-green-900"
+													disabled={updatingQuota}
+													className="text-green-600 hover:text-green-900 disabled:text-gray-400 flex items-center"
 												>
-													Save
+													{updatingQuota ? (
+														<>
+															<LoadingSpinner size="sm" />
+															<span className="ml-1">Saving</span>
+														</>
+													) : (
+														'Save'
+													)}
 												</button>
 												<button
 													onClick={() => setEditingUser(null)}
 													className="text-gray-600 hover:text-gray-900"
+													disabled={updatingQuota}
 												>
 													Cancel
 												</button>
@@ -161,9 +181,17 @@ const AdminPanel = () => {
 										{(!user.roles || !user.roles.includes('admin')) && (
 											<button
 												onClick={() => handleDeleteUser(user._id)}
-												className="text-red-600 hover:text-red-900"
+												disabled={deletingUsers[user._id]}
+												className="text-red-600 hover:text-red-900 disabled:text-gray-400 flex items-center"
 											>
-												Delete
+												{deletingUsers[user._id] ? (
+													<>
+														<LoadingSpinner size="sm" />
+														<span className="ml-1">Deleting...</span>
+													</>
+												) : (
+													'Delete'
+												)}
 											</button>
 										)}
 									</td>
@@ -185,9 +213,16 @@ const AdminPanel = () => {
 				<button
 					onClick={handleSystemCleanup}
 					disabled={isCleaningUp}
-					className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md disabled:bg-gray-400"
+					className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md disabled:bg-gray-400 flex items-center"
 				>
-					{isCleaningUp ? 'Cleaning...' : 'Clean Up System'}
+					{isCleaningUp ? (
+						<>
+							<LoadingSpinner size="sm" color="white" />
+							<span className="ml-2">Cleaning...</span>
+						</>
+					) : (
+						'Clean Up System'
+					)}
 				</button>
 				<p className="mt-2 text-sm text-gray-600">
 					This will remove orphaned files and database entries.

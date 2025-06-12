@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
 import Navbar from './components/Navbar';
 import UserSettings from './components/UserSettings';
+import LoadingSpinner from './components/LoadingSpinner';
 
 function App() {
 	const [initialized, setInitialized] = useState(false);
@@ -22,7 +23,14 @@ function App() {
 	}, []);
 
 	if (!initialized) {
-		return <div>Loading...</div>;
+		return (
+			<div className="h-screen flex items-center justify-center bg-gray-100">
+				<div className="text-center">
+					<LoadingSpinner size="xl" />
+					<p className="mt-4 text-gray-600">Initializing application...</p>
+				</div>
+			</div>
+		);
 	}
 
 	return (

@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { getCurrentUser, deleteUserAccount } from '../services/api';
 import { formatBytes } from '../utils';
 import { logout } from '../services/keycloak';
+import LoadingSpinner from './LoadingSpinner';
 
 const UserSettings = () => {
 	const [user, setUser] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [deletingAccount, setDeletingAccount] = useState(false);
 
 	useEffect(() => {
 		fetchUserData();
@@ -40,11 +42,13 @@ const UserSettings = () => {
 	const handleDeleteAccount = async () => {
 		if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
 			try {
+				setDeletingAccount(true);
 				await deleteUserAccount();
 				logout();
 			} catch (err) {
 				console.error('Error deleting account:', err);
 				setError('Failed to delete account: ' + (err.response?.data?.message || err.message));
+				setDeletingAccount(false);
 			}
 		}
 	};
@@ -57,7 +61,11 @@ const UserSettings = () => {
 	};
 
 	if (loading) {
-		return <div className="w-full p-8">Loading user data...</div>;
+		return (
+			<div className="w-full p-8 flex justify-center items-center">
+				<LoadingSpinner size="lg" text="Loading user data..." />
+			</div>
+		);
 	}
 
 	if (error) {
@@ -137,9 +145,17 @@ const UserSettings = () => {
 					</p>
 					<button
 						onClick={handleDeleteAccount}
-						className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md"
+						disabled={deletingAccount}
+						className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md disabled:bg-red-300 flex items-center"
 					>
-						Delete Account
+						{deletingAccount ? (
+							<>
+								<LoadingSpinner size="sm" color="white" />
+								<span className="ml-2">Deleting...</span>
+							</>
+						) : (
+							'Delete Account'
+						)}
 					</button>
 				</div>
 			</div>

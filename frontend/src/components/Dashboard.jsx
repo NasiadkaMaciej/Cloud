@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getFiles, uploadFile, deleteFile, downloadFile, getCurrentUser } from '../services/api';
 import { formatBytes } from '../utils';
+import LoadingSpinner from './LoadingSpinner';
 
 const FileTable = ({ files, onDownload, onDelete, loading }) => {
-
-
 	return (
 		<table className="min-w-full divide-y divide-gray-200">
 			<thead className="bg-gray-50">
@@ -25,7 +24,11 @@ const FileTable = ({ files, onDownload, onDelete, loading }) => {
 			</thead>
 			<tbody className="bg-white divide-y divide-gray-200">
 				{loading ? (
-					<tr><td colSpan="4" className="px-6 py-4 text-center">Loading...</td></tr>
+					<tr>
+						<td colSpan="4" className="px-6 py-8 text-center">
+							<LoadingSpinner size="md" fullWidth text="Loading files..." />
+						</td>
+					</tr>
 				) : files.length === 0 ? (
 					<tr><td colSpan="4" className="px-6 py-4 text-center">No files found</td></tr>
 				) : (
@@ -64,6 +67,7 @@ const Dashboard = () => {
 	const [uploading, setUploading] = useState(false);
 	const [error, setError] = useState(null);
 	const [quotaInfo, setQuotaInfo] = useState(null);
+	const [quotaLoading, setQuotaLoading] = useState(true);
 
 	useEffect(() => {
 		fetchFiles();
@@ -86,6 +90,7 @@ const Dashboard = () => {
 
 	const fetchUserQuota = async () => {
 		try {
+			setQuotaLoading(true);
 			const response = await getCurrentUser();
 			setQuotaInfo({
 				used: response.data.usedStorage,
@@ -94,6 +99,8 @@ const Dashboard = () => {
 			});
 		} catch (err) {
 			console.error('Failed to load quota information:', err);
+		} finally {
+			setQuotaLoading(false);
 		}
 	};
 
@@ -169,21 +176,27 @@ const Dashboard = () => {
 			)}
 
 			{/* Storage quota display */}
-			{quotaInfo && (
-				<div className="bg-white p-4 rounded-lg shadow-md mb-6">
-					<h2 className="text-lg font-semibold mb-2">Storage</h2>
-					<div className="flex justify-between mb-1">
-						<span>{formatBytes(quotaInfo.used)} used of {formatBytes(quotaInfo.total)}</span>
-						<span>{formatBytes(quotaInfo.available)} available</span>
-					</div>
-					<div className="w-full bg-gray-200 rounded-full h-2.5">
-						<div
-							className="bg-blue-600 h-2.5 rounded-full"
-							style={{ width: `${Math.min(100, (quotaInfo.used / quotaInfo.total) * 100)}%` }}
-						></div>
-					</div>
-				</div>
-			)}
+			<div className="bg-white p-4 rounded-lg shadow-md mb-6">
+				<h2 className="text-lg font-semibold mb-2">Storage</h2>
+				{quotaLoading ? (
+					<LoadingSpinner size="sm" fullWidth text="Loading storage info..." />
+				) : quotaInfo ? (
+					<>
+						<div className="flex justify-between mb-1">
+							<span>{formatBytes(quotaInfo.used)} used of {formatBytes(quotaInfo.total)}</span>
+							<span>{formatBytes(quotaInfo.available)} available</span>
+						</div>
+						<div className="w-full bg-gray-200 rounded-full h-2.5">
+							<div
+								className="bg-blue-600 h-2.5 rounded-full"
+								style={{ width: `${Math.min(100, (quotaInfo.used / quotaInfo.total) * 100)}%` }}
+							></div>
+						</div>
+					</>
+				) : (
+					<p>Storage information not available</p>
+				)}
+			</div>
 
 			{/* File upload UI */}
 			<div className="bg-white p-6 rounded-lg shadow-md mb-6">
@@ -193,11 +206,7 @@ const Dashboard = () => {
 						className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 
                         file:rounded-full file:border-0 file:text-sm file:font-semibold
                         file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-					{uploading && (
-						<div className="ml-3">
-							<div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-						</div>
-					)}
+					{uploading && <LoadingSpinner size="sm" text="Uploading..." />}
 				</div>
 			</div>
 
