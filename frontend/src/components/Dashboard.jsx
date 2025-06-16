@@ -3,6 +3,39 @@ import { getFiles, uploadFile, deleteFile, downloadFile, getCurrentUser } from '
 import { formatBytes } from '../utils';
 import LoadingSpinner from './LoadingSpinner';
 
+// File type icons - we'll determine file type based on extension
+const getFileIcon = (fileName) => {
+	const extension = fileName.split('.').pop().toLowerCase();
+
+	const iconMap = {
+		pdf: "far fa-file-pdf",
+		doc: "far fa-file-word",
+		docx: "far fa-file-word",
+		xls: "far fa-file-excel",
+		xlsx: "far fa-file-excel",
+		ppt: "far fa-file-powerpoint",
+		pptx: "far fa-file-powerpoint",
+		txt: "far fa-file-alt",
+		csv: "far fa-file-csv",
+		jpg: "far fa-file-image",
+		jpeg: "far fa-file-image",
+		png: "far fa-file-image",
+		gif: "far fa-file-image",
+		zip: "far fa-file-archive",
+		rar: "far fa-file-archive",
+		mp3: "far fa-file-audio",
+		mp4: "far fa-file-video",
+		js: "far fa-file-code",
+		jsx: "far fa-file-code",
+		html: "far fa-file-code",
+		css: "far fa-file-code",
+	};
+
+	return iconMap[extension] || "far fa-file";
+};
+
+
+// Original table view component
 const FileTable = ({ files, onDownload, onDelete, loading }) => {
 	return (
 		<table className="min-w-full divide-y divide-gray-200">
@@ -34,7 +67,12 @@ const FileTable = ({ files, onDownload, onDelete, loading }) => {
 				) : (
 					files.map((file) => (
 						<tr key={file._id}>
-							<td className="px-6 py-4 whitespace-nowrap">{file.fileName}</td>
+							<td className="px-6 py-4 whitespace-nowrap">
+								<div className="flex items-center">
+									<i className={`${getFileIcon(file.fileName)} text-gray-500 mr-3`}></i>
+									{file.fileName}
+								</div>
+							</td>
 							<td className="px-6 py-4 whitespace-nowrap">{formatBytes(file.fileSize)}</td>
 							<td className="px-6 py-4 whitespace-nowrap">
 								{new Date(file.createdAt).toLocaleDateString()}
@@ -61,6 +99,75 @@ const FileTable = ({ files, onDownload, onDelete, loading }) => {
 	);
 };
 
+// File Grid Component
+const FileGrid = ({ files, onDownload, onDelete, loading }) => {
+	if (loading) {
+		return (
+			<div className="w-full flex justify-center py-12">
+				<LoadingSpinner size="md" fullWidth text="Loading files..." />
+			</div>
+		);
+	}
+
+	if (files.length === 0) {
+		return (
+			<div className="w-full py-16 text-center text-gray-500">
+				<i className="far fa-folder-open text-5xl mb-4"></i>
+				<p>No files found</p>
+				<p className="text-sm mt-2">Upload a file to get started</p>
+			</div>
+		);
+	}
+
+	return (
+		<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+			{files.map((file) => (
+				<div
+					key={file._id}
+					className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200"
+				>
+					{/* File Icon */}
+					<div className="h-24 bg-gray-50 flex items-center justify-center">
+						<i className={`${getFileIcon(file.fileName)} text-3xl text-gray-500`}></i>
+					</div>
+
+					{/* File Info */}
+					<div className="p-3">
+						<div className="truncate font-medium text-sm" title={file.fileName}>
+							{file.fileName}
+						</div>
+						<div className="text-xs text-gray-500 mt-1">
+							{formatBytes(file.fileSize)}
+						</div>
+						<div className="text-xs text-gray-400">
+							{new Date(file.createdAt).toLocaleDateString()}
+						</div>
+
+						{/* Actions */}
+						<div className="flex justify-between mt-3">
+							<button
+								onClick={() => onDownload(file._id, file.fileName)}
+								className="text-blue-600 hover:text-blue-800 text-sm"
+								title="Download"
+							>
+								<i className="fas fa-download"></i>
+							</button>
+
+							<button
+								onClick={() => onDelete(file._id)}
+								className="text-red-600 hover:text-red-800 text-sm"
+								title="Delete"
+							>
+								<i className="fas fa-trash-alt"></i>
+							</button>
+						</div>
+					</div>
+				</div>
+			))}
+		</div>
+	);
+};
+
 const Dashboard = () => {
 	const [files, setFiles] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -68,6 +175,7 @@ const Dashboard = () => {
 	const [error, setError] = useState(null);
 	const [quotaInfo, setQuotaInfo] = useState(null);
 	const [quotaLoading, setQuotaLoading] = useState(true);
+	const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
 	useEffect(() => {
 		fetchFiles();
@@ -146,13 +254,15 @@ const Dashboard = () => {
 	};
 
 	const handleDeleteFile = async (fileId) => {
-		try {
-			await deleteFile(fileId);
-			await fetchFiles();
-			await fetchUserQuota();
-		} catch (err) {
-			setError('Failed to delete file');
-			console.error(err);
+		if (window.confirm('Are you sure you want to delete this file?')) {
+			try {
+				await deleteFile(fileId);
+				await fetchFiles();
+				await fetchUserQuota();
+			} catch (err) {
+				setError('Failed to delete file');
+				console.error(err);
+			}
 		}
 	};
 
@@ -210,14 +320,44 @@ const Dashboard = () => {
 				</div>
 			</div>
 
-			{/* File table component */}
-			<div className="bg-white rounded-lg shadow-md overflow-hidden">
-				<FileTable
-					files={files}
-					loading={loading}
-					onDownload={handleDownloadFile}
-					onDelete={handleDeleteFile}
-				/>
+			{/* View toggle */}
+			<div className="bg-white rounded-lg shadow-md p-4 mb-6">
+				<div className="flex items-center justify-between">
+					<h2 className="text-lg font-semibold">Files</h2>
+					<div className="flex space-x-2">
+						<button
+							onClick={() => setViewMode('grid')}
+							className={`p-2 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}
+						>
+							<i className="fas fa-th-large"></i>
+						</button>
+						<button
+							onClick={() => setViewMode('list')}
+							className={`p-2 rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}
+						>
+							<i className="fas fa-list"></i>
+						</button>
+					</div>
+				</div>
+			</div>
+
+			{/* File display */}
+			<div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
+				{viewMode === 'grid' ? (
+					<FileGrid
+						files={files}
+						loading={loading}
+						onDownload={handleDownloadFile}
+						onDelete={handleDeleteFile}
+					/>
+				) : (
+					<FileTable
+						files={files}
+						loading={loading}
+						onDownload={handleDownloadFile}
+						onDelete={handleDeleteFile}
+					/>
+				)}
 			</div>
 		</div>
 	);
