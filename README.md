@@ -2,6 +2,14 @@
 
 This project is a dockerized personal cloud service that allows users to securely store files with customizable storage quotas. The application is built using React for the frontend, Node.js for the API, and Keycloak for OAuth 2.0 authentication and authorization.
 
+## Screenshots
+
+| Admin Panel | Dashboard | Settings |
+| --- | --- | --- |
+| ![Admin Panel](screenshots/admin.png) | ![Dashboard](screenshots/dashboard.png) | ![Settings](screenshots/settings.png) |
+| Admin panel interface for user management and system maintenance | Main dashboard showing file storage and management | User settings page for account management |
+
+
 ## Project Structure
 
 ```
