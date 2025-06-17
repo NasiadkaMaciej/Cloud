@@ -120,11 +120,11 @@ const FileGrid = ({ files, onDownload, onDelete, loading }) => {
 	}
 
 	return (
-		<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+		<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
 			{files.map((file) => (
 				<div
 					key={file._id}
-					className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200"
+					className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 flex flex-col"
 				>
 					{/* File Icon */}
 					<div className="h-24 bg-gray-50 flex items-center justify-center">
@@ -132,7 +132,7 @@ const FileGrid = ({ files, onDownload, onDelete, loading }) => {
 					</div>
 
 					{/* File Info */}
-					<div className="p-3">
+					<div className="p-3 flex-grow">
 						<div className="truncate font-medium text-sm" title={file.fileName}>
 							{file.fileName}
 						</div>
@@ -142,25 +142,27 @@ const FileGrid = ({ files, onDownload, onDelete, loading }) => {
 						<div className="text-xs text-gray-400">
 							{new Date(file.createdAt).toLocaleDateString()}
 						</div>
+					</div>
 
-						{/* Actions */}
-						<div className="flex justify-between mt-3">
-							<button
-								onClick={() => onDownload(file._id, file.fileName)}
-								className="text-blue-600 hover:text-blue-800 text-sm"
-								title="Download"
-							>
-								<i className="fas fa-download"></i>
-							</button>
+					{/* Actions */}
+					<div className="flex justify-between p-3 border-t border-gray-100">
+						<button
+							onClick={() => onDownload(file._id, file.fileName)}
+							className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+							title="Download"
+						>
+							<i className="fas fa-download mr-1"></i>
+							<span>Download</span>
+						</button>
 
-							<button
-								onClick={() => onDelete(file._id)}
-								className="text-red-600 hover:text-red-800 text-sm"
-								title="Delete"
-							>
-								<i className="fas fa-trash-alt"></i>
-							</button>
-						</div>
+						<button
+							onClick={() => onDelete(file._id)}
+							className="text-red-600 hover:text-red-800 flex items-center text-sm"
+							title="Delete"
+						>
+							<i className="fas fa-trash-alt mr-1"></i>
+							<span>Delete</span>
+						</button>
 					</div>
 				</div>
 			))}

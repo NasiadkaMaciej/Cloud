@@ -32,12 +32,20 @@ const AdminPanel = () => {
 		}
 	};
 
+	const updateUserInList = (userId, updates) => {
+		setUsers(prevUsers =>
+			prevUsers.map(user =>
+				user._id === userId ? { ...user, ...updates } : user
+			)
+		);
+	};
+
 	const handleDeleteUser = async (userId) => {
 		if (window.confirm('Are you sure you want to delete this user?')) {
 			try {
 				setDeletingUsers(prev => ({ ...prev, [userId]: true }));
 				await deleteUser(userId);
-				await fetchUsers();
+				setUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
 			} catch (err) {
 				setError('Failed to delete user');
 				console.error(err);
@@ -51,8 +59,11 @@ const AdminPanel = () => {
 		try {
 			setUpdatingQuota(true);
 			await updateUserQuota(userId, newQuota);
+
+			const quotaInBytes = newQuota * 1024 * 1024 * 1024;
+			updateUserInList(userId, { storageQuota: quotaInBytes });
+
 			setEditingUser(null);
-			await fetchUsers();
 		} catch (err) {
 			setError('Failed to update quota');
 			console.error(err);
